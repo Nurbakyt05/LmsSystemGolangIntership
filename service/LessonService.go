@@ -1,9 +1,9 @@
-package lesson
+package service
 
 import (
-	dto "LmsSystem/dto/lesson"
-	mapper "LmsSystem/mapper/lesson"
-	repo "LmsSystem/repository/lesson"
+	"LmsSystem/dto"
+	"LmsSystem/mapper"
+	repo "LmsSystem/repository"
 )
 
 type LessonService interface {

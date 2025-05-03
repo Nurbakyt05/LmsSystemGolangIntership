@@ -1,12 +1,12 @@
-package lesson
+package mapper
 
 import (
-	"LmsSystem/dto/lesson"
+	"LmsSystem/dto"
 	"LmsSystem/models"
 )
 
-func ToLessonDTO(model models.Lesson) lesson.LessonDTO {
-	return lesson.LessonDTO{
+func ToLessonDTO(model models.Lesson) dto.LessonDTO {
+	return dto.LessonDTO{
 		ID:          model.ID,
 		Name:        model.Name,
 		Description: model.Description,
@@ -18,7 +18,7 @@ func ToLessonDTO(model models.Lesson) lesson.LessonDTO {
 	}
 }
 
-func ToLessonModel(dto lesson.LessonDTO) models.Lesson {
+func ToLessonModel(dto dto.LessonDTO) models.Lesson {
 	return models.Lesson{
 		ID:          dto.ID,
 		Name:        dto.Name,

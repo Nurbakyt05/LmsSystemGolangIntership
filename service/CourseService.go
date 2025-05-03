@@ -2,8 +2,8 @@ package service
 
 import (
 	"LmsSystem/dto"
-	"LmsSystem/mapper"
-	"LmsSystem/repository"
+	course2 "LmsSystem/mapper"
+	course3 "LmsSystem/repository"
 )
 
 type CourseService interface {
@@ -15,10 +15,10 @@ type CourseService interface {
 }
 
 type courseService struct {
-	repo repository.CourseRepository
+	repo course3.CourseRepository
 }
 
-func NewCourseService(repo repository.CourseRepository) CourseService {
+func NewCourseService(repo course3.CourseRepository) CourseService {
 	return &courseService{repo}
 }
 
@@ -30,7 +30,7 @@ func (s *courseService) GetAll() ([]dto.CourseDTO, error) {
 
 	var result []dto.CourseDTO
 	for _, course := range courses {
-		result = append(result, mapper.ToCourseDTO(course))
+		result = append(result, course2.ToCourseDTO(course))
 	}
 	return result, nil
 }
@@ -40,17 +40,17 @@ func (s *courseService) GetByID(id uint) (*dto.CourseDTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	dto := mapper.ToCourseDTO(*course)
+	dto := course2.ToCourseDTO(*course)
 	return &dto, nil
 }
 
 func (s *courseService) Create(course dto.CourseDTO) error {
-	model := mapper.ToCourseModel(course)
+	model := course2.ToCourseModel(course)
 	return s.repo.Create(&model)
 }
 
 func (s *courseService) Update(course dto.CourseDTO) error {
-	model := mapper.ToCourseModel(course)
+	model := course2.ToCourseModel(course)
 	return s.repo.Update(&model)
 }
 

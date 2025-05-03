@@ -1,30 +1,19 @@
-package chapter
+package handler
 
 import (
-	dto "LmsSystem/dto/chapter"
-	"LmsSystem/service/chapter"
+	"LmsSystem/dto"
+	"LmsSystem/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
 type ChapterHandler struct {
-	service chapter.ChapterService
+	service service.ChapterService
 }
 
-func NewChapterHandler(service chapter.ChapterService) *ChapterHandler {
+func NewChapterHandler(service service.ChapterService) *ChapterHandler {
 	return &ChapterHandler{service: service}
-}
-
-func (h *ChapterHandler) RegisterRoutes(router *gin.RouterGroup) {
-	group := router.Group("/chapters")
-	{
-		group.GET("", h.GetAll)
-		group.GET("/:id", h.GetByID)
-		group.POST("", h.Create)
-		group.PUT("/:id", h.Update)
-		group.DELETE("/:id", h.Delete)
-	}
 }
 
 func (h *ChapterHandler) GetAll(c *gin.Context) {

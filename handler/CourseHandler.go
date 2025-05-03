@@ -1,8 +1,8 @@
-package coursepackage
+package handler
 
 import (
 	"LmsSystem/dto"
-	service "LmsSystem/service/course"
+	"LmsSystem/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -14,17 +14,6 @@ type CourseHandler struct {
 
 func NewCourseHandler(service service.CourseService) *CourseHandler {
 	return &CourseHandler{service}
-}
-
-func (h *CourseHandler) RegisterRoutes(router *gin.RouterGroup) {
-	courses := router.Group("/courses")
-	{
-		courses.GET("", h.GetAll)
-		courses.GET("/:id", h.GetByID)
-		courses.POST("", h.Create)
-		courses.PUT("/:id", h.Update)
-		courses.DELETE("/:id", h.Delete)
-	}
 }
 
 func (h *CourseHandler) GetAll(c *gin.Context) {

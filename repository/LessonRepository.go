@@ -1,4 +1,4 @@
-package lesson
+package repository
 
 import (
 	"LmsSystem/models"

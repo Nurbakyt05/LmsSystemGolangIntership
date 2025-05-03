@@ -1,7 +1,7 @@
-package chapter
+package mapper
 
 import (
-	dto "LmsSystem/dto/chapter"
+	"LmsSystem/dto"
 	"LmsSystem/models"
 )
 

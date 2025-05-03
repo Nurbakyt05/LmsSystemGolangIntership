@@ -1,4 +1,4 @@
-package lesson
+package dto
 
 import "time"
 

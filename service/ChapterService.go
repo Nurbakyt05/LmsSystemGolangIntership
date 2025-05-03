@@ -1,9 +1,9 @@
-package chapter
+package service
 
 import (
-	dto "LmsSystem/dto/chapter"
-	"LmsSystem/mapper/chapter"
-	repository "LmsSystem/repository/chapter"
+	"LmsSystem/dto"
+	"LmsSystem/mapper"
+	"LmsSystem/repository"
 )
 
 type ChapterService interface {
@@ -29,7 +29,7 @@ func (s *chapterService) GetAll() ([]dto.ChapterDTO, error) {
 	}
 	var result []dto.ChapterDTO
 	for _, c := range chapters {
-		result = append(result, chapter.ToChapterDTO(c))
+		result = append(result, mapper.ToChapterDTO(c))
 	}
 	return result, nil
 }
@@ -39,17 +39,17 @@ func (s *chapterService) GetByID(id uint) (*dto.ChapterDTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	dto := chapter.ToChapterDTO(*ch)
+	dto := mapper.ToChapterDTO(*ch)
 	return &dto, nil
 }
 
 func (s *chapterService) Create(dto dto.ChapterDTO) error {
-	model := chapter.ToChapterModel(dto)
+	model := mapper.ToChapterModel(dto)
 	return s.repo.Create(&model)
 }
 
 func (s *chapterService) Update(dto dto.ChapterDTO) error {
-	model := chapter.ToChapterModel(dto)
+	model := mapper.ToChapterModel(dto)
 	return s.repo.Update(&model)
 }
 
