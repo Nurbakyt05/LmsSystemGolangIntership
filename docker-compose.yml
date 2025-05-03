@@ -3,7 +3,7 @@ services:
     build: .
     container_name: go-lms-system
     ports:
-      - "8080:8080"
+      - "7171:8080"
     depends_on:
       - db
     environment:
@@ -12,8 +12,6 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=NURIK2005
       - DB_NAME=LmsDataBase
-    volumes:
-      - .:/app
 
   db:
     image: postgres:15-alpine

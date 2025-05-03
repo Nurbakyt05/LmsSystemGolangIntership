@@ -1,5 +1,5 @@
 # Используем минимальный и ARM-совместимый образ Go
-FROM golang:1.21-alpine
+FROM golang:1.24-alpine
 
 # Устанавливаем необходимые зависимости
 RUN apk update && apk add --no-cache git gcc musl-dev
