@@ -1,14 +1,14 @@
-// router/router.go
 package router
 
 import (
+	"net/http"
+
 	"LmsSystem/handler"
 	"LmsSystem/repository"
 	"LmsSystem/service"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 func SetupRoutes(db *gorm.DB, r *gin.Engine, logger *logrus.Logger) {
@@ -29,7 +29,7 @@ func SetupRoutes(db *gorm.DB, r *gin.Engine, logger *logrus.Logger) {
 
 	api := r.Group("/api")
 	{
-		// Health-check на /api
+		// Health-check
 		api.GET("", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
@@ -56,10 +56,11 @@ func SetupRoutes(db *gorm.DB, r *gin.Engine, logger *logrus.Logger) {
 
 			byChapter := chapters.Group("/:chapter_id")
 			{
-				byChapter.GET("", chapterH.GetChapterByID)
+				// Возвращает главу вместе со всеми уроками
+				byChapter.GET("", chapterH.GetChapterWithLessons)
 				byChapter.PUT("", chapterH.UpdateChapter)
 				byChapter.DELETE("", chapterH.DeleteChapter)
-				byChapter.GET("/lessons", lessonH.GetLessonsByChapterID)
+				// убрали: byChapter.GET("/lessons", lessonH.GetLessonsByChapterID)
 			}
 		}
 

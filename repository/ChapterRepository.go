@@ -66,9 +66,12 @@ func (r *chapterRepository) FindByCourseID(ctx context.Context, courseID uint) (
 // FindByIDWithLessons retrieves a chapter with its lessons by ID
 func (r *chapterRepository) FindByIDWithLessons(ctx context.Context, id uint) (*model.Chapter, error) {
 	var chapter model.Chapter
-	err := r.db.WithContext(ctx).Preload("Lessons", func(db *gorm.DB) *gorm.DB {
-		return db.Order("lessons.order ASC")
-	}).First(&chapter, id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Lessons", func(db *gorm.DB) *gorm.DB {
+			return db.Order("lessons.order ASC")
+		}).
+		First(&chapter, id).
+		Error
 	if err != nil {
 		return nil, err
 	}

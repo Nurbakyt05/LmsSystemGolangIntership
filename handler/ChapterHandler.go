@@ -68,18 +68,21 @@ func (h *ChapterHandler) GetChaptersByCourseID(c *gin.Context) {
 }
 
 func (h *ChapterHandler) GetChapterWithLessons(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("chapter_id"), 10, 32)
+	rawID := c.Param("chapter_id")
+	id64, err := strconv.ParseUint(rawID, 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid chapter ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
 		return
 	}
-	detail, err := h.service.GetChapterWithLessons(c.Request.Context(), uint(id))
+
+	detail, err := h.service.GetChapterWithLessons(c.Request.Context(), uint(id64))
 	if err != nil {
-		h.logger.WithError(err).WithField("chapter_id", id).Error("Failed to retrieve chapter with lessons")
-		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found"})
+		h.logger.WithError(err).WithField("chapter_id", id64).Error("Failed to retrieve chapter with lessons")
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, detail)
 }
 

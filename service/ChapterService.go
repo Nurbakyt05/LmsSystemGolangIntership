@@ -176,7 +176,7 @@ func (s *chapterService) GetChaptersByCourseID(ctx context.Context, courseID uin
 
 // GetChapterWithLessons retrieves a chapter with its lessons
 func (s *chapterService) GetChapterWithLessons(ctx context.Context, id uint) (*dto.ChapterDetailResponse, error) {
-	chapter, err := s.repo.FindByIDWithLessons(ctx, id)
+	ch, err := s.repo.FindByIDWithLessons(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.WithField("chapter_id", id).Info("Chapter not found")
@@ -187,6 +187,6 @@ func (s *chapterService) GetChapterWithLessons(ctx context.Context, id uint) (*d
 	}
 
 	var resp dto.ChapterDetailResponse
-	resp.FromModel(chapter)
+	resp.FromModel(ch)
 	return &resp, nil
 }
