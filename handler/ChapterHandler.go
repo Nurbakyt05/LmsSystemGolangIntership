@@ -1,106 +1,134 @@
 package handler
 
 import (
-	"LmsSystem/models"
+	"LmsSystem/dto"
 	"LmsSystem/service"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type ChapterHandler struct {
 	service service.ChapterService
+	logger  *logrus.Logger
 }
 
-func NewChapterHandler(service service.ChapterService) *ChapterHandler {
-	return &ChapterHandler{service: service}
+func NewChapterHandler(s service.ChapterService, logger *logrus.Logger) *ChapterHandler {
+	return &ChapterHandler{service: s, logger: logger}
 }
 
-func (h *ChapterHandler) GetAllChapters(c *gin.Context) {
-	chapters, err := h.service.GetAllChapters()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+// RegisterRoutes registers chapter endpoints
+func (h *ChapterHandler) RegisterRoutes(r *gin.RouterGroup) {
+	ch := r.Group("/chapters")
+	{
+		ch.POST("", h.CreateChapter)
+		ch.GET("/:id", h.GetChapterByID)
+		ch.PUT("/:id", h.UpdateChapter)
+		ch.DELETE("/:id", h.DeleteChapter)
+		ch.GET("/:id/lessons", h.GetChapterWithLessons)
 	}
-	c.JSON(http.StatusOK, chapters)
-}
-
-func (h *ChapterHandler) GetChapter(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID"})
-		return
-	}
-
-	chapter, err := h.service.GetChapterByID(uint(id))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found"})
-		return
-	}
-	c.JSON(http.StatusOK, chapter)
-}
-
-func (h *ChapterHandler) GetChaptersByCourse(c *gin.Context) {
-	courseID, err := strconv.Atoi(c.Param("courseId"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID"})
-		return
-	}
-
-	chapters, err := h.service.GetChaptersByCourse(uint(courseID))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, chapters)
+	r.GET("/courses/:courseId/chapters", h.GetChaptersByCourseID)
 }
 
 func (h *ChapterHandler) CreateChapter(c *gin.Context) {
-	var chapter models.Chapter
-	if err := c.ShouldBindJSON(&chapter); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req dto.ChapterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.WithError(err).Error("Invalid request data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
-
-	if err := h.service.CreateChapter(&chapter); err != nil {
+	resp, err := h.service.CreateChapter(c.Request.Context(), &req)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to create chapter")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, chapter)
+	c.JSON(http.StatusCreated, resp)
+}
+
+func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		h.logger.WithError(err).Error("Invalid chapter ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
+		return
+	}
+	resp, err := h.service.GetChapterByID(c.Request.Context(), uint(id))
+	if err != nil {
+		h.logger.WithError(err).WithField("chapter_id", id).Error("Chapter not found")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found"})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *ChapterHandler) GetChaptersByCourseID(c *gin.Context) {
+	courseID, err := strconv.ParseUint(c.Param("courseId"), 10, 32)
+	if err != nil {
+		h.logger.WithError(err).Error("Invalid course ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID format"})
+		return
+	}
+	list, err := h.service.GetChaptersByCourseID(c.Request.Context(), uint(courseID))
+	if err != nil {
+		h.logger.WithError(err).WithField("course_id", courseID).Error("Failed to retrieve chapters")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve chapters"})
+		return
+	}
+	c.JSON(http.StatusOK, list)
+}
+
+func (h *ChapterHandler) GetChapterWithLessons(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		h.logger.WithError(err).Error("Invalid chapter ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
+		return
+	}
+	detail, err := h.service.GetChapterWithLessons(c.Request.Context(), uint(id))
+	if err != nil {
+		h.logger.WithError(err).WithField("chapter_id", id).Error("Failed to retrieve chapter with lessons")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found"})
+		return
+	}
+	c.JSON(http.StatusOK, detail)
 }
 
 func (h *ChapterHandler) UpdateChapter(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID"})
+		h.logger.WithError(err).Error("Invalid chapter ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
 		return
 	}
-
-	var chapter models.Chapter
-	if err := c.ShouldBindJSON(&chapter); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req dto.ChapterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.WithError(err).Error("Invalid request data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
-	chapter.ID = uint(id)
-
-	if err := h.service.UpdateChapter(&chapter); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	updated, err := h.service.UpdateChapter(c.Request.Context(), uint(id), &req)
+	if err != nil {
+		h.logger.WithError(err).WithField("chapter_id", id).Error("Failed to update chapter")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found or update failed"})
 		return
 	}
-	c.JSON(http.StatusOK, chapter)
+	c.JSON(http.StatusOK, updated)
 }
 
 func (h *ChapterHandler) DeleteChapter(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID"})
+		h.logger.WithError(err).Error("Invalid chapter ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
 		return
 	}
-
-	if err := h.service.DeleteChapter(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.service.DeleteChapter(c.Request.Context(), uint(id)); err != nil {
+		h.logger.WithError(err).WithField("chapter_id", id).Error("Failed to delete chapter")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found or deletion failed"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Chapter deleted successfully"})
+	c.Status(http.StatusNoContent)
 }

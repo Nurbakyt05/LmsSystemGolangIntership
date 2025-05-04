@@ -1,59 +1,77 @@
 package repository
 
 import (
-	"LmsSystem/models"
+	model "LmsSystem/models"
+	"context"
+
 	"gorm.io/gorm"
 )
 
+// CourseRepository defines the interface for course data access
 type CourseRepository interface {
-	GetAll() ([]models.Course, error)
-	GetByID(id uint) (*models.Course, error)
-	GetWithChapters(id uint) (*models.Course, error)
-	Create(course *models.Course) error
-	Update(course *models.Course) error
-	Delete(id uint) error
+	Create(ctx context.Context, course *model.Course) error
+	Update(ctx context.Context, course *model.Course) error
+	Delete(ctx context.Context, id uint) error
+	FindByID(ctx context.Context, id uint) (*model.Course, error)
+	FindAll(ctx context.Context) ([]model.Course, error)
+	FindByIDWithChapters(ctx context.Context, id uint) (*model.Course, error)
 }
 
+// courseRepository implements CourseRepository interface
 type courseRepository struct {
 	db *gorm.DB
 }
 
+// NewCourseRepository creates a new instance of CourseRepository
 func NewCourseRepository(db *gorm.DB) CourseRepository {
-	return &courseRepository{db: db}
+	return &courseRepository{
+		db: db,
+	}
 }
 
-func (r *courseRepository) GetAll() ([]models.Course, error) {
-	var courses []models.Course
-	err := r.db.Find(&courses).Error
-	return courses, err
+// Create adds a new course to the database
+func (r *courseRepository) Create(ctx context.Context, course *model.Course) error {
+	return r.db.WithContext(ctx).Create(course).Error
 }
 
-func (r *courseRepository) GetByID(id uint) (*models.Course, error) {
-	var course models.Course
-	err := r.db.First(&course, id).Error
+// Update updates an existing course in the database
+func (r *courseRepository) Update(ctx context.Context, course *model.Course) error {
+	return r.db.WithContext(ctx).Save(course).Error
+}
+
+// Delete removes a course from the database by ID
+func (r *courseRepository) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&model.Course{}, id).Error
+}
+
+// FindByID retrieves a course by its ID
+func (r *courseRepository) FindByID(ctx context.Context, id uint) (*model.Course, error) {
+	var course model.Course
+	err := r.db.WithContext(ctx).First(&course, id).Error
 	if err != nil {
 		return nil, err
 	}
 	return &course, nil
 }
 
-func (r *courseRepository) GetWithChapters(id uint) (*models.Course, error) {
-	var course models.Course
-	err := r.db.Preload("Chapters.Lessons").First(&course, id).Error
+// FindAll retrieves all courses
+func (r *courseRepository) FindAll(ctx context.Context) ([]model.Course, error) {
+	var courses []model.Course
+	err := r.db.WithContext(ctx).Find(&courses).Error
+	if err != nil {
+		return nil, err
+	}
+	return courses, nil
+}
+
+// FindByIDWithChapters retrieves a course with its chapters by ID
+func (r *courseRepository) FindByIDWithChapters(ctx context.Context, id uint) (*model.Course, error) {
+	var course model.Course
+	err := r.db.WithContext(ctx).Preload("Chapters", func(db *gorm.DB) *gorm.DB {
+		return db.Order("chapters.order ASC")
+	}).First(&course, id).Error
 	if err != nil {
 		return nil, err
 	}
 	return &course, nil
-}
-
-func (r *courseRepository) Create(course *models.Course) error {
-	return r.db.Create(course).Error
-}
-
-func (r *courseRepository) Update(course *models.Course) error {
-	return r.db.Save(course).Error
-}
-
-func (r *courseRepository) Delete(id uint) error {
-	return r.db.Select("Chapters").Delete(&models.Course{}, id).Error
 }

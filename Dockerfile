@@ -1,25 +1,32 @@
-# Используем минимальный и ARM-совместимый образ Go
-FROM golang:1.24-alpine
+# 1) Билдим приложение
+FROM golang:1.24-alpine AS builder
 
-# Устанавливаем необходимые зависимости
-RUN apk update && apk add --no-cache git gcc musl-dev
-
-# Создаем рабочую директорию внутри контейнера
 WORKDIR /app
 
-# Кэшируем зависимости
-COPY go.mod ./
-COPY go.sum ./
+# зависимости
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Копируем весь проект внутрь контейнера
+# копируем весь код
 COPY . .
 
-# Собираем Go-приложение
-RUN go build -o main .
+# ставим инструменты для сборки С
+RUN apk update && apk add --no-cache git gcc musl-dev
 
-# Пробрасываем порт 8080
-EXPOSE 8080
+# собираем бинарь с уникальным именем
+RUN CGO_ENABLED=0 GOOS=linux go build -o lms-system ./main/main.go
 
-# Команда по умолчанию при запуске контейнера
-CMD ["./main"]
+# 2) Финальный образ
+FROM alpine:latest
+
+# (по желанию) корневой рабочий каталог
+WORKDIR /root/
+
+# копируем только бинарь из builder
+COPY --from=builder /app/lms-system .
+
+# делаем его исполняемым
+RUN chmod +x lms-system
+
+# запускаем приложение
+ENTRYPOINT ["./lms-system"]

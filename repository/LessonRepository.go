@@ -1,56 +1,63 @@
 package repository
 
 import (
-	"LmsSystem/models"
+	model "LmsSystem/models"
+	"context"
 	"gorm.io/gorm"
 )
 
+// LessonRepository defines the interface for lesson data access
 type LessonRepository interface {
-	GetAll() ([]models.Lesson, error)
-	GetByID(id uint) (*models.Lesson, error)
-	GetByChapterID(chapterID uint) ([]models.Lesson, error)
-	Create(lesson *models.Lesson) error
-	Update(lesson *models.Lesson) error
-	Delete(id uint) error
+	Create(ctx context.Context, lesson *model.Lesson) error
+	Update(ctx context.Context, lesson *model.Lesson) error
+	Delete(ctx context.Context, id uint) error
+	FindByID(ctx context.Context, id uint) (*model.Lesson, error)
+	FindByChapterID(ctx context.Context, chapterID uint) ([]model.Lesson, error)
 }
 
+// lessonRepository implements LessonRepository interface
 type lessonRepository struct {
 	db *gorm.DB
 }
 
+// NewLessonRepository creates a new instance of LessonRepository
 func NewLessonRepository(db *gorm.DB) LessonRepository {
-	return &lessonRepository{db: db}
+	return &lessonRepository{
+		db: db,
+	}
 }
 
-func (r *lessonRepository) GetAll() ([]models.Lesson, error) {
-	var lessons []models.Lesson
-	err := r.db.Find(&lessons).Error
-	return lessons, err
+// Create adds a new lesson to the database
+func (r *lessonRepository) Create(ctx context.Context, lesson *model.Lesson) error {
+	return r.db.WithContext(ctx).Create(lesson).Error
 }
 
-func (r *lessonRepository) GetByID(id uint) (*models.Lesson, error) {
-	var lesson models.Lesson
-	err := r.db.First(&lesson, id).Error
+// Update updates an existing lesson in the database
+func (r *lessonRepository) Update(ctx context.Context, lesson *model.Lesson) error {
+	return r.db.WithContext(ctx).Save(lesson).Error
+}
+
+// Delete removes a lesson from the database by ID
+func (r *lessonRepository) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&model.Lesson{}, id).Error
+}
+
+// FindByID retrieves a lesson by its ID
+func (r *lessonRepository) FindByID(ctx context.Context, id uint) (*model.Lesson, error) {
+	var lesson model.Lesson
+	err := r.db.WithContext(ctx).First(&lesson, id).Error
 	if err != nil {
 		return nil, err
 	}
 	return &lesson, nil
 }
 
-func (r *lessonRepository) GetByChapterID(chapterID uint) ([]models.Lesson, error) {
-	var lessons []models.Lesson
-	err := r.db.Where("chapter_id = ?", chapterID).Find(&lessons).Error
-	return lessons, err
-}
-
-func (r *lessonRepository) Create(lesson *models.Lesson) error {
-	return r.db.Create(lesson).Error
-}
-
-func (r *lessonRepository) Update(lesson *models.Lesson) error {
-	return r.db.Save(lesson).Error
-}
-
-func (r *lessonRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Lesson{}, id).Error
+// FindByChapterID retrieves all lessons for a specific chapter ID
+func (r *lessonRepository) FindByChapterID(ctx context.Context, chapterID uint) ([]model.Lesson, error) {
+	var lessons []model.Lesson
+	err := r.db.WithContext(ctx).Where("chapter_id = ?", chapterID).Order("\"order\" ASC").Find(&lessons).Error
+	if err != nil {
+		return nil, err
+	}
+	return lessons, nil
 }

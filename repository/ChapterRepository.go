@@ -1,56 +1,76 @@
 package repository
 
 import (
-	"LmsSystem/models"
+	model "LmsSystem/models"
+	"context"
 	"gorm.io/gorm"
 )
 
+// ChapterRepository defines the interface for chapter data access
 type ChapterRepository interface {
-	GetAll() ([]models.Chapter, error)
-	GetByID(id uint) (*models.Chapter, error)
-	GetByCourseID(courseID uint) ([]models.Chapter, error)
-	Create(chapter *models.Chapter) error
-	Update(chapter *models.Chapter) error
-	Delete(id uint) error
+	Create(ctx context.Context, chapter *model.Chapter) error
+	Update(ctx context.Context, chapter *model.Chapter) error
+	Delete(ctx context.Context, id uint) error
+	FindByID(ctx context.Context, id uint) (*model.Chapter, error)
+	FindByCourseID(ctx context.Context, courseID uint) ([]model.Chapter, error)
+	FindByIDWithLessons(ctx context.Context, id uint) (*model.Chapter, error)
 }
 
+// chapterRepository implements ChapterRepository interface
 type chapterRepository struct {
 	db *gorm.DB
 }
 
+// NewChapterRepository creates a new instance of ChapterRepository
 func NewChapterRepository(db *gorm.DB) ChapterRepository {
-	return &chapterRepository{db: db}
+	return &chapterRepository{
+		db: db,
+	}
 }
 
-func (r *chapterRepository) GetAll() ([]models.Chapter, error) {
-	var chapters []models.Chapter
-	err := r.db.Preload("Lessons").Find(&chapters).Error
-	return chapters, err
+// Create adds a new chapter to the database
+func (r *chapterRepository) Create(ctx context.Context, chapter *model.Chapter) error {
+	return r.db.WithContext(ctx).Create(chapter).Error
 }
 
-func (r *chapterRepository) GetByID(id uint) (*models.Chapter, error) {
-	var chapter models.Chapter
-	err := r.db.Preload("Lessons").First(&chapter, id).Error
+// Update updates an existing chapter in the database
+func (r *chapterRepository) Update(ctx context.Context, chapter *model.Chapter) error {
+	return r.db.WithContext(ctx).Save(chapter).Error
+}
+
+// Delete removes a chapter from the database by ID
+func (r *chapterRepository) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&model.Chapter{}, id).Error
+}
+
+// FindByID retrieves a chapter by its ID
+func (r *chapterRepository) FindByID(ctx context.Context, id uint) (*model.Chapter, error) {
+	var chapter model.Chapter
+	err := r.db.WithContext(ctx).First(&chapter, id).Error
 	if err != nil {
 		return nil, err
 	}
 	return &chapter, nil
 }
 
-func (r *chapterRepository) GetByCourseID(courseID uint) ([]models.Chapter, error) {
-	var chapters []models.Chapter
-	err := r.db.Preload("Lessons").Where("course_id = ?", courseID).Find(&chapters).Error
-	return chapters, err
+// FindByCourseID retrieves all chapters for a specific course ID
+func (r *chapterRepository) FindByCourseID(ctx context.Context, courseID uint) ([]model.Chapter, error) {
+	var chapters []model.Chapter
+	err := r.db.WithContext(ctx).Where("course_id = ?", courseID).Order("\"order\" ASC").Find(&chapters).Error
+	if err != nil {
+		return nil, err
+	}
+	return chapters, nil
 }
 
-func (r *chapterRepository) Create(chapter *models.Chapter) error {
-	return r.db.Create(chapter).Error
-}
-
-func (r *chapterRepository) Update(chapter *models.Chapter) error {
-	return r.db.Save(chapter).Error
-}
-
-func (r *chapterRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Chapter{}, id).Error
+// FindByIDWithLessons retrieves a chapter with its lessons by ID
+func (r *chapterRepository) FindByIDWithLessons(ctx context.Context, id uint) (*model.Chapter, error) {
+	var chapter model.Chapter
+	err := r.db.WithContext(ctx).Preload("Lessons", func(db *gorm.DB) *gorm.DB {
+		return db.Order("lessons.order ASC")
+	}).First(&chapter, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &chapter, nil
 }

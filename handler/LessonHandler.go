@@ -1,106 +1,117 @@
 package handler
 
 import (
-	"LmsSystem/models"
+	"LmsSystem/dto"
 	"LmsSystem/service"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type LessonHandler struct {
 	service service.LessonService
+	logger  *logrus.Logger
 }
 
-func NewLessonHandler(service service.LessonService) *LessonHandler {
-	return &LessonHandler{service: service}
+func NewLessonHandler(s service.LessonService, logger *logrus.Logger) *LessonHandler {
+	return &LessonHandler{service: s, logger: logger}
 }
 
-func (h *LessonHandler) GetAllLessons(c *gin.Context) {
-	lessons, err := h.service.GetAllLessons()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+// RegisterRoutes registers lesson endpoints
+func (h *LessonHandler) RegisterRoutes(r *gin.RouterGroup) {
+	ls := r.Group("/lessons")
+	{
+		ls.POST("", h.CreateLesson)
+		ls.GET("/:id", h.GetLessonByID)
+		ls.PUT("/:id", h.UpdateLesson)
+		ls.DELETE("/:id", h.DeleteLesson)
 	}
-	c.JSON(http.StatusOK, lessons)
-}
-
-func (h *LessonHandler) GetLesson(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID"})
-		return
-	}
-
-	lesson, err := h.service.GetLessonByID(uint(id))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Lesson not found"})
-		return
-	}
-	c.JSON(http.StatusOK, lesson)
-}
-
-func (h *LessonHandler) GetLessonsByChapter(c *gin.Context) {
-	chapterID, err := strconv.Atoi(c.Param("chapterId"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID"})
-		return
-	}
-
-	lessons, err := h.service.GetLessonsByChapter(uint(chapterID))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, lessons)
+	r.GET("/chapters/:chapterId/lessons", h.GetLessonsByChapterID)
 }
 
 func (h *LessonHandler) CreateLesson(c *gin.Context) {
-	var lesson models.Lesson
-	if err := c.ShouldBindJSON(&lesson); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req dto.LessonRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.WithError(err).Error("Invalid lesson creation request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
+	resp, err := h.service.CreateLesson(c.Request.Context(), &req)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to create lesson")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create lesson"})
+		return
+	}
+	c.JSON(http.StatusCreated, resp)
+}
 
-	if err := h.service.CreateLesson(&lesson); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+func (h *LessonHandler) GetLessonByID(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		h.logger.WithError(err).Error("Invalid lesson ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID format"})
 		return
 	}
-	c.JSON(http.StatusCreated, lesson)
+	resp, err := h.service.GetLessonByID(c.Request.Context(), uint(id))
+	if err != nil {
+		h.logger.WithError(err).WithField("lesson_id", id).Error("Lesson not found")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Lesson not found"})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *LessonHandler) GetLessonsByChapterID(c *gin.Context) {
+	chapterID, err := strconv.ParseUint(c.Param("chapterId"), 10, 32)
+	if err != nil {
+		h.logger.WithError(err).Error("Invalid chapter ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
+		return
+	}
+	list, err := h.service.GetLessonsByChapterID(c.Request.Context(), uint(chapterID))
+	if err != nil {
+		h.logger.WithError(err).WithField("chapter_id", chapterID).Error("Failed to retrieve lessons")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve lessons"})
+		return
+	}
+	c.JSON(http.StatusOK, list)
 }
 
 func (h *LessonHandler) UpdateLesson(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID"})
+		h.logger.WithError(err).Error("Invalid lesson ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID format"})
 		return
 	}
-
-	var lesson models.Lesson
-	if err := c.ShouldBindJSON(&lesson); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req dto.LessonRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.WithError(err).Error("Invalid request data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
-	lesson.ID = uint(id)
-
-	if err := h.service.UpdateLesson(&lesson); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	resp, err := h.service.UpdateLesson(c.Request.Context(), uint(id), &req)
+	if err != nil {
+		h.logger.WithError(err).WithField("lesson_id", id).Error("Failed to update lesson")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Lesson not found or update failed"})
 		return
 	}
-	c.JSON(http.StatusOK, lesson)
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *LessonHandler) DeleteLesson(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID"})
+		h.logger.WithError(err).Error("Invalid lesson ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID format"})
 		return
 	}
-
-	if err := h.service.DeleteLesson(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.service.DeleteLesson(c.Request.Context(), uint(id)); err != nil {
+		h.logger.WithError(err).WithField("lesson_id", id).Error("Failed to delete lesson")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Lesson not found or deletion failed"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Lesson deleted successfully"})
+	c.Status(http.StatusNoContent)
 }
