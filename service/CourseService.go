@@ -1,57 +1,45 @@
 package service
 
 import (
-	"LmsSystem/dto"
-	course2 "LmsSystem/mapper"
-	course3 "LmsSystem/repository"
+	"LmsSystem/models"
+	"LmsSystem/repository"
 )
 
 type CourseService interface {
-	GetAll() ([]dto.CourseDTO, error)
-	GetByID(id uint) (*dto.CourseDTO, error)
-	Create(course dto.CourseDTO) error
-	Update(course dto.CourseDTO) error
+	GetAll() ([]models.Course, error)
+	GetByID(id uint) (*models.Course, error)
+	GetFullCourse(id uint) (*models.Course, error)
+	Create(course *models.Course) error
+	Update(course *models.Course) error
 	Delete(id uint) error
 }
 
 type courseService struct {
-	repo course3.CourseRepository
+	repo repository.CourseRepository
 }
 
-func NewCourseService(repo course3.CourseRepository) CourseService {
-	return &courseService{repo}
+func NewCourseService(repo repository.CourseRepository) CourseService {
+	return &courseService{repo: repo}
 }
 
-func (s *courseService) GetAll() ([]dto.CourseDTO, error) {
-	courses, err := s.repo.GetAll()
-	if err != nil {
-		return nil, err
-	}
-
-	var result []dto.CourseDTO
-	for _, course := range courses {
-		result = append(result, course2.ToCourseDTO(course))
-	}
-	return result, nil
+func (s *courseService) GetAll() ([]models.Course, error) {
+	return s.repo.GetAll()
 }
 
-func (s *courseService) GetByID(id uint) (*dto.CourseDTO, error) {
-	course, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-	dto := course2.ToCourseDTO(*course)
-	return &dto, nil
+func (s *courseService) GetByID(id uint) (*models.Course, error) {
+	return s.repo.GetByID(id)
 }
 
-func (s *courseService) Create(course dto.CourseDTO) error {
-	model := course2.ToCourseModel(course)
-	return s.repo.Create(&model)
+func (s *courseService) GetFullCourse(id uint) (*models.Course, error) {
+	return s.repo.GetWithChapters(id)
 }
 
-func (s *courseService) Update(course dto.CourseDTO) error {
-	model := course2.ToCourseModel(course)
-	return s.repo.Update(&model)
+func (s *courseService) Create(course *models.Course) error {
+	return s.repo.Create(course)
+}
+
+func (s *courseService) Update(course *models.Course) error {
+	return s.repo.Update(course)
 }
 
 func (s *courseService) Delete(id uint) error {

@@ -1,46 +1,72 @@
-package routes
+package router
 
 import (
 	"LmsSystem/handler"
 	"LmsSystem/repository"
 	"LmsSystem/service"
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.Engine, db *gorm.DB) {
-	api := router.Group("/api")
+func SetupRoutes(db *gorm.DB) *gin.Engine {
+	r := gin.Default()
 
-	// ===== Course =====
+	// Инициализация репозиториев
 	courseRepo := repository.NewCourseRepository(db)
-	courseService := service.NewCourseService(courseRepo)
-	courseHandler := handler.NewCourseHandler(courseService)
-
-	api.GET("/get-courses", courseHandler.GetAll)
-	api.GET("/get-course/:id", courseHandler.GetByID)
-	api.POST("/create-course", courseHandler.Create)
-	api.PUT("/update-course/:id", courseHandler.Update)
-	api.DELETE("/delete-course/:id", courseHandler.Delete)
-
-	// ===== Chapter =====
 	chapterRepo := repository.NewChapterRepository(db)
-	chapterService := service.NewChapterService(chapterRepo)
-	chapterHandler := handler.NewChapterHandler(chapterService)
-
-	api.GET("/get-chapters", chapterHandler.GetAll)
-	api.GET("/get-chapter/:id", chapterHandler.GetByID)
-	api.POST("/create-chapter", chapterHandler.Create)
-	api.PUT("/update-chapter/:id", chapterHandler.Update)
-	api.DELETE("/delete-chapter/:id", chapterHandler.Delete)
-
-	// ===== Lesson =====
 	lessonRepo := repository.NewLessonRepository(db)
+
+	// Инициализация сервисов
+	courseService := service.NewCourseService(courseRepo)
+	chapterService := service.NewChapterService(chapterRepo)
 	lessonService := service.NewLessonService(lessonRepo)
+
+	// Инициализация хендлеров
+	courseHandler := handler.NewCourseHandler(courseService)
+	chapterHandler := handler.NewChapterHandler(chapterService)
 	lessonHandler := handler.NewLessonHandler(lessonService)
 
-	api.GET("/get-lessons", lessonHandler.GetAll)
-	api.GET("/get-lesson/:id", lessonHandler.GetByID)
-	api.POST("/create-lesson", lessonHandler.Create)
-	api.PUT("/update-lesson/:id", lessonHandler.Update)
-	api.DELETE("/delete-lesson/:id", lessonHandler.Delete)
+	// Маршруты API
+	api := r.Group("/api")
+	{
+		// Курсы
+		courses := api.Group("/courses")
+		{
+			courses.GET("/", courseHandler.GetAll)
+			courses.GET("/:id", courseHandler.GetByID)
+			courses.GET("/", courseHandler.GetFullCourse)
+			courses.POST("/", courseHandler.Create)
+			courses.PUT("/:id", courseHandler.Update)
+			courses.DELETE("/:id", courseHandler.Delete)
+
+			// Главы курса
+			courses.GET("/:courseId/chapters", chapterHandler.GetChaptersByCourse)
+		}
+
+		// Главы
+		chapters := api.Group("/chapters")
+		{
+			chapters.GET("/", chapterHandler.GetAllChapters)
+			chapters.GET("/:id", chapterHandler.GetChapter)
+			chapters.POST("/", chapterHandler.CreateChapter)
+			chapters.PUT("/:id", chapterHandler.UpdateChapter)
+			chapters.DELETE("/:id", chapterHandler.DeleteChapter)
+
+			// Уроки главы
+			chapters.GET("/:chapterId/lessons", lessonHandler.GetLessonsByChapter)
+		}
+
+		// Уроки
+		lessons := api.Group("/lessons")
+		{
+			lessons.GET("/", lessonHandler.GetAllLessons)
+			lessons.GET("/:id", lessonHandler.GetLesson)
+			lessons.POST("/", lessonHandler.CreateLesson)
+			lessons.PUT("/:id", lessonHandler.UpdateLesson)
+			lessons.DELETE("/:id", lessonHandler.DeleteLesson)
+		}
+	}
+
+	return r
 }

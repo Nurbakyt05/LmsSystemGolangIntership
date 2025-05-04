@@ -1,11 +1,12 @@
 package handler
 
 import (
-	"LmsSystem/dto"
+	"LmsSystem/models"
 	"LmsSystem/service"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type CourseHandler struct {
@@ -13,20 +14,25 @@ type CourseHandler struct {
 }
 
 func NewCourseHandler(service service.CourseService) *CourseHandler {
-	return &CourseHandler{service}
+	return &CourseHandler{service: service}
 }
 
 func (h *CourseHandler) GetAll(c *gin.Context) {
 	courses, err := h.service.GetAll()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch courses"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, courses)
 }
 
 func (h *CourseHandler) GetByID(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID"})
+		return
+	}
+
 	course, err := h.service.GetByID(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
@@ -35,42 +41,66 @@ func (h *CourseHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, course)
 }
 
-func (h *CourseHandler) Create(c *gin.Context) {
-	var course dto.CourseDTO
-	if err := c.ShouldBindJSON(&course); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
-	err := h.service.Create(course)
+func (h *CourseHandler) GetFullCourse(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create course"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID"})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "Course created"})
+
+	course, err := h.service.GetFullCourse(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
+		return
+	}
+	c.JSON(http.StatusOK, course)
+}
+
+func (h *CourseHandler) Create(c *gin.Context) {
+	var course models.Course
+	if err := c.ShouldBindJSON(&course); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.Create(&course); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, course)
 }
 
 func (h *CourseHandler) Update(c *gin.Context) {
-	var course dto.CourseDTO
-	if err := c.ShouldBindJSON(&course); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
-	id, _ := strconv.Atoi(c.Param("id"))
-	course.ID = uint(id)
-	err := h.service.Update(course)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update course"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Course updated"})
+
+	var course models.Course
+	if err := c.ShouldBindJSON(&course); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	course.ID = uint(id)
+
+	if err := h.service.Update(&course); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, course)
 }
 
 func (h *CourseHandler) Delete(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	err := h.service.Delete(uint(id))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete course"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Course deleted"})
+
+	if err := h.service.Delete(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Course deleted successfully"})
 }

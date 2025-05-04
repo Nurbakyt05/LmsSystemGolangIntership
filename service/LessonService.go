@@ -1,59 +1,47 @@
 package service
 
 import (
-	"LmsSystem/dto"
-	"LmsSystem/mapper"
-	repo "LmsSystem/repository"
+	"LmsSystem/models"
+	"LmsSystem/repository"
 )
 
 type LessonService interface {
-	GetAll() ([]dto.LessonDTO, error)
-	GetByID(id uint) (*dto.LessonDTO, error)
-	Create(dto.LessonDTO) error
-	Update(dto.LessonDTO) error
-	Delete(id uint) error
+	GetAllLessons() ([]models.Lesson, error)
+	GetLessonByID(id uint) (*models.Lesson, error)
+	GetLessonsByChapter(chapterID uint) ([]models.Lesson, error)
+	CreateLesson(lesson *models.Lesson) error
+	UpdateLesson(lesson *models.Lesson) error
+	DeleteLesson(id uint) error
 }
 
 type lessonService struct {
-	repo repo.LessonRepository
+	repo repository.LessonRepository
 }
 
-func NewLessonService(repo repo.LessonRepository) LessonService {
-	return &lessonService{repo}
+func NewLessonService(repo repository.LessonRepository) LessonService {
+	return &lessonService{repo: repo}
 }
 
-func (s *lessonService) GetAll() ([]dto.LessonDTO, error) {
-	lessons, err := s.repo.GetAll()
-	if err != nil {
-		return nil, err
-	}
-
-	var result []dto.LessonDTO
-	for _, l := range lessons {
-		result = append(result, mapper.ToLessonDTO(l))
-	}
-	return result, nil
+func (s *lessonService) GetAllLessons() ([]models.Lesson, error) {
+	return s.repo.GetAll()
 }
 
-func (s *lessonService) GetByID(id uint) (*dto.LessonDTO, error) {
-	l, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-	dtoObj := mapper.ToLessonDTO(*l)
-	return &dtoObj, nil
+func (s *lessonService) GetLessonByID(id uint) (*models.Lesson, error) {
+	return s.repo.GetByID(id)
 }
 
-func (s *lessonService) Create(dto dto.LessonDTO) error {
-	model := mapper.ToLessonModel(dto)
-	return s.repo.Create(&model)
+func (s *lessonService) GetLessonsByChapter(chapterID uint) ([]models.Lesson, error) {
+	return s.repo.GetByChapterID(chapterID)
 }
 
-func (s *lessonService) Update(dto dto.LessonDTO) error {
-	model := mapper.ToLessonModel(dto)
-	return s.repo.Update(&model)
+func (s *lessonService) CreateLesson(lesson *models.Lesson) error {
+	return s.repo.Create(lesson)
 }
 
-func (s *lessonService) Delete(id uint) error {
+func (s *lessonService) UpdateLesson(lesson *models.Lesson) error {
+	return s.repo.Update(lesson)
+}
+
+func (s *lessonService) DeleteLesson(id uint) error {
 	return s.repo.Delete(id)
 }

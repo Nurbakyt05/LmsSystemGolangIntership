@@ -1,11 +1,12 @@
 package handler
 
 import (
-	"LmsSystem/dto"
+	"LmsSystem/models"
 	"LmsSystem/service"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ChapterHandler struct {
@@ -16,78 +17,90 @@ func NewChapterHandler(service service.ChapterService) *ChapterHandler {
 	return &ChapterHandler{service: service}
 }
 
-func (h *ChapterHandler) GetAll(c *gin.Context) {
-	chapters, err := h.service.GetAll()
+func (h *ChapterHandler) GetAllChapters(c *gin.Context) {
+	chapters, err := h.service.GetAllChapters()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch chapters"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, chapters)
 }
 
-func (h *ChapterHandler) GetByID(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+func (h *ChapterHandler) GetChapter(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID"})
 		return
 	}
 
-	chapterDTO, err := h.service.GetByID(uint(id))
+	chapter, err := h.service.GetChapterByID(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Chapter not found"})
 		return
 	}
-	c.JSON(http.StatusOK, chapterDTO)
+	c.JSON(http.StatusOK, chapter)
 }
 
-func (h *ChapterHandler) Create(c *gin.Context) {
-	var input dto.ChapterDTO
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+func (h *ChapterHandler) GetChaptersByCourse(c *gin.Context) {
+	courseID, err := strconv.Atoi(c.Param("courseId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID"})
 		return
 	}
 
-	if err := h.service.Create(input); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create chapter"})
+	chapters, err := h.service.GetChaptersByCourse(uint(courseID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "Chapter created"})
+	c.JSON(http.StatusOK, chapters)
 }
 
-func (h *ChapterHandler) Update(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+func (h *ChapterHandler) CreateChapter(c *gin.Context) {
+	var chapter models.Chapter
+	if err := c.ShouldBindJSON(&chapter); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.CreateChapter(&chapter); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, chapter)
+}
+
+func (h *ChapterHandler) UpdateChapter(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID"})
 		return
 	}
 
-	var input dto.ChapterDTO
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+	var chapter models.Chapter
+	if err := c.ShouldBindJSON(&chapter); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	input.ID = uint(id)
+	chapter.ID = uint(id)
 
-	if err := h.service.Update(input); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update chapter"})
+	if err := h.service.UpdateChapter(&chapter); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Chapter updated"})
+	c.JSON(http.StatusOK, chapter)
 }
 
-func (h *ChapterHandler) Delete(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+func (h *ChapterHandler) DeleteChapter(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID"})
 		return
 	}
 
-	if err := h.service.Delete(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete chapter"})
+	if err := h.service.DeleteChapter(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Chapter deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Chapter deleted successfully"})
 }

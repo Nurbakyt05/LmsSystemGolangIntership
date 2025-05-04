@@ -6,7 +6,7 @@ import (
 )
 
 func ToCourseDTO(course models.Course) dto.CourseDTO {
-	return course.CourseDTO{
+	return dto.CourseDTO{
 		ID:          course.ID,
 		Name:        course.Name,
 		Description: course.Description,

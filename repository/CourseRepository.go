@@ -8,6 +8,7 @@ import (
 type CourseRepository interface {
 	GetAll() ([]models.Course, error)
 	GetByID(id uint) (*models.Course, error)
+	GetWithChapters(id uint) (*models.Course, error)
 	Create(course *models.Course) error
 	Update(course *models.Course) error
 	Delete(id uint) error
@@ -18,7 +19,7 @@ type courseRepository struct {
 }
 
 func NewCourseRepository(db *gorm.DB) CourseRepository {
-	return &courseRepository{db}
+	return &courseRepository{db: db}
 }
 
 func (r *courseRepository) GetAll() ([]models.Course, error) {
@@ -36,6 +37,15 @@ func (r *courseRepository) GetByID(id uint) (*models.Course, error) {
 	return &course, nil
 }
 
+func (r *courseRepository) GetWithChapters(id uint) (*models.Course, error) {
+	var course models.Course
+	err := r.db.Preload("Chapters.Lessons").First(&course, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &course, nil
+}
+
 func (r *courseRepository) Create(course *models.Course) error {
 	return r.db.Create(course).Error
 }
@@ -45,5 +55,5 @@ func (r *courseRepository) Update(course *models.Course) error {
 }
 
 func (r *courseRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Course{}, id).Error
+	return r.db.Select("Chapters").Delete(&models.Course{}, id).Error
 }

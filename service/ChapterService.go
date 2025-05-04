@@ -1,17 +1,17 @@
 package service
 
 import (
-	"LmsSystem/dto"
-	"LmsSystem/mapper"
+	"LmsSystem/models"
 	"LmsSystem/repository"
 )
 
 type ChapterService interface {
-	GetAll() ([]dto.ChapterDTO, error)
-	GetByID(id uint) (*dto.ChapterDTO, error)
-	Create(dto dto.ChapterDTO) error
-	Update(dto dto.ChapterDTO) error
-	Delete(id uint) error
+	GetAllChapters() ([]models.Chapter, error)
+	GetChapterByID(id uint) (*models.Chapter, error)
+	GetChaptersByCourse(courseID uint) ([]models.Chapter, error)
+	CreateChapter(chapter *models.Chapter) error
+	UpdateChapter(chapter *models.Chapter) error
+	DeleteChapter(id uint) error
 }
 
 type chapterService struct {
@@ -19,40 +19,29 @@ type chapterService struct {
 }
 
 func NewChapterService(repo repository.ChapterRepository) ChapterService {
-	return &chapterService{repo}
+	return &chapterService{repo: repo}
 }
 
-func (s *chapterService) GetAll() ([]dto.ChapterDTO, error) {
-	chapters, err := s.repo.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	var result []dto.ChapterDTO
-	for _, c := range chapters {
-		result = append(result, mapper.ToChapterDTO(c))
-	}
-	return result, nil
+func (s *chapterService) GetAllChapters() ([]models.Chapter, error) {
+	return s.repo.GetAll()
 }
 
-func (s *chapterService) GetByID(id uint) (*dto.ChapterDTO, error) {
-	ch, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-	dto := mapper.ToChapterDTO(*ch)
-	return &dto, nil
+func (s *chapterService) GetChapterByID(id uint) (*models.Chapter, error) {
+	return s.repo.GetByID(id)
 }
 
-func (s *chapterService) Create(dto dto.ChapterDTO) error {
-	model := mapper.ToChapterModel(dto)
-	return s.repo.Create(&model)
+func (s *chapterService) GetChaptersByCourse(courseID uint) ([]models.Chapter, error) {
+	return s.repo.GetByCourseID(courseID)
 }
 
-func (s *chapterService) Update(dto dto.ChapterDTO) error {
-	model := mapper.ToChapterModel(dto)
-	return s.repo.Update(&model)
+func (s *chapterService) CreateChapter(chapter *models.Chapter) error {
+	return s.repo.Create(chapter)
 }
 
-func (s *chapterService) Delete(id uint) error {
+func (s *chapterService) UpdateChapter(chapter *models.Chapter) error {
+	return s.repo.Update(chapter)
+}
+
+func (s *chapterService) DeleteChapter(id uint) error {
 	return s.repo.Delete(id)
 }
