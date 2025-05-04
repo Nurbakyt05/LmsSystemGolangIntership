@@ -3,8 +3,9 @@ package main
 import (
 	"LmsSystem/database"
 	"LmsSystem/router"
-	"fmt" // ← добавили
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus" // Импортируем logrus
 	"log"
 	"os"
 )
@@ -16,9 +17,14 @@ func main() {
 	}
 
 	r := gin.Default()
-	router.SetupRoutes(db, r)
 
-	// ← Ниже выводим все зарегистрированные маршруты
+	// Initialize the logger
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.JSONFormatter{}) // Optional: Use JSON format
+	logger.SetOutput(os.Stdout)
+
+	router.SetupRoutes(db, r, logger) // Pass the logger
+
 	fmt.Println("Registered routes:")
 	for _, rt := range r.Routes() {
 		fmt.Printf("%-6s %s\n", rt.Method, rt.Path)

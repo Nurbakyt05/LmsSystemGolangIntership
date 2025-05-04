@@ -1,3 +1,4 @@
+// router/router.go
 package router
 
 import (
@@ -5,74 +6,74 @@ import (
 	"LmsSystem/repository"
 	"LmsSystem/service"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"net/http"
 )
 
-func SetupRoutes(db *gorm.DB, r *gin.Engine) {
-	// Репозитории
+func SetupRoutes(db *gorm.DB, r *gin.Engine, logger *logrus.Logger) {
+	// Repositories
 	courseRepo := repository.NewCourseRepository(db)
 	chapterRepo := repository.NewChapterRepository(db)
 	lessonRepo := repository.NewLessonRepository(db)
 
-	// Сервисы
-	courseService := service.NewCourseService(courseRepo)
-	chapterService := service.NewChapterService(chapterRepo)
-	lessonService := service.NewLessonService(lessonRepo)
+	// Services
+	courseSvc := service.NewCourseService(courseRepo, logger)
+	chapterSvc := service.NewChapterService(chapterRepo, courseRepo, logger)
+	lessonSvc := service.NewLessonService(lessonRepo, chapterRepo, logger)
 
-	// Хендлеры
-	courseHandler := handler.NewCourseHandler(courseService)
-	chapterHandler := handler.NewChapterHandler(chapterService)
-	lessonHandler := handler.NewLessonHandler(lessonService)
+	// Handlers
+	courseH := handler.NewCourseHandler(courseSvc, logger)
+	chapterH := handler.NewChapterHandler(chapterSvc, logger)
+	lessonH := handler.NewLessonHandler(lessonSvc, logger)
 
 	api := r.Group("/api")
-
-	// ======= Курсы =======
-	courses := api.Group("/courses")
 	{
-		courses.GET("/", courseHandler.GetAll)
-		courses.GET("/full", courseHandler.GetAllFullCourses) // все курсы + их главы и уроки
-		courses.POST("/", courseHandler.Create)
+		// Health-check на /api
+		api.GET("", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		})
 
-		courseItem := courses.Group("/:id")
+		// Courses
+		courses := api.Group("/courses")
 		{
-			courseItem.GET("", courseHandler.GetByID)
-			courseItem.GET("/full", courseHandler.GetFullCourse) // один курс + его главы и уроки
-			courseItem.PUT("", courseHandler.Update)
-			courseItem.DELETE("", courseHandler.Delete)
-			courseItem.GET("/chapters", chapterHandler.GetChaptersByCourse)
+			courses.GET("", courseH.GetAllCourses)
+			courses.POST("", courseH.CreateCourse)
+
+			byCourse := courses.Group("/:course_id")
+			{
+				byCourse.GET("", courseH.GetCourseByID)
+				byCourse.PUT("", courseH.UpdateCourse)
+				byCourse.DELETE("", courseH.DeleteCourse)
+				byCourse.GET("/chapters", chapterH.GetChaptersByCourseID)
+			}
 		}
-	}
 
-	// ======= Главы =======
-	chapters := api.Group("/chapters")
-	{
-		chapters.GET("/full", chapterHandler.GetAllFullChapters) // все главы + уроки
-		chapters.GET("/", chapterHandler.GetAllChapters)
-		chapters.POST("/", chapterHandler.CreateChapter)
-
-		chapterItem := chapters.Group("/:id")
+		// Chapters
+		chapters := api.Group("/chapters")
 		{
-			chapterItem.GET("/full", chapterHandler.GetFullChapterByID) // одна глава + уроки
-			chapterItem.GET("", chapterHandler.GetChapter)
-			chapterItem.PUT("", chapterHandler.UpdateChapter)
-			chapterItem.DELETE("", chapterHandler.DeleteChapter)
-			chapterItem.GET("/lessons", lessonHandler.GetLessonsByChapter)
+			chapters.POST("", chapterH.CreateChapter)
+
+			byChapter := chapters.Group("/:chapter_id")
+			{
+				byChapter.GET("", chapterH.GetChapterByID)
+				byChapter.PUT("", chapterH.UpdateChapter)
+				byChapter.DELETE("", chapterH.DeleteChapter)
+				byChapter.GET("/lessons", lessonH.GetLessonsByChapterID)
+			}
 		}
-	}
 
-	// ======= Уроки =======
-	lessons := api.Group("/lessons")
-	{
-		lessons.GET("/full", lessonHandler.GetAllFullLessons) // все уроки + их глава
-		lessons.GET("/", lessonHandler.GetAllLessons)
-		lessons.POST("/", lessonHandler.CreateLesson)
-
-		lessonItem := lessons.Group("/:id")
+		// Lessons
+		lessons := api.Group("/lessons")
 		{
-			lessonItem.GET("/full", lessonHandler.GetFullLessonByID) // один урок + его глава
-			lessonItem.GET("", lessonHandler.GetLesson)
-			lessonItem.PUT("", lessonHandler.UpdateLesson)
-			lessonItem.DELETE("", lessonHandler.DeleteLesson)
+			lessons.POST("", lessonH.CreateLesson)
+
+			byLesson := lessons.Group("/:lesson_id")
+			{
+				byLesson.GET("", lessonH.GetLessonByID)
+				byLesson.PUT("", lessonH.UpdateLesson)
+				byLesson.DELETE("", lessonH.DeleteLesson)
+			}
 		}
 	}
 }

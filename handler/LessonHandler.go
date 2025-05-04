@@ -19,18 +19,6 @@ func NewLessonHandler(s service.LessonService, logger *logrus.Logger) *LessonHan
 	return &LessonHandler{service: s, logger: logger}
 }
 
-// RegisterRoutes registers lesson endpoints
-func (h *LessonHandler) RegisterRoutes(r *gin.RouterGroup) {
-	ls := r.Group("/lessons")
-	{
-		ls.POST("", h.CreateLesson)
-		ls.GET("/:id", h.GetLessonByID)
-		ls.PUT("/:id", h.UpdateLesson)
-		ls.DELETE("/:id", h.DeleteLesson)
-	}
-	r.GET("/chapters/:chapterId/lessons", h.GetLessonsByChapterID)
-}
-
 func (h *LessonHandler) CreateLesson(c *gin.Context) {
 	var req dto.LessonRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,7 +36,7 @@ func (h *LessonHandler) CreateLesson(c *gin.Context) {
 }
 
 func (h *LessonHandler) GetLessonByID(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("lesson_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid lesson ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID format"})
@@ -64,7 +52,7 @@ func (h *LessonHandler) GetLessonByID(c *gin.Context) {
 }
 
 func (h *LessonHandler) GetLessonsByChapterID(c *gin.Context) {
-	chapterID, err := strconv.ParseUint(c.Param("chapterId"), 10, 32)
+	chapterID, err := strconv.ParseUint(c.Param("chapter_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid chapter ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
@@ -80,7 +68,7 @@ func (h *LessonHandler) GetLessonsByChapterID(c *gin.Context) {
 }
 
 func (h *LessonHandler) UpdateLesson(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("lesson_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid lesson ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID format"})
@@ -102,7 +90,7 @@ func (h *LessonHandler) UpdateLesson(c *gin.Context) {
 }
 
 func (h *LessonHandler) DeleteLesson(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("lesson_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid lesson ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lesson ID format"})

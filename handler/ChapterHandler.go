@@ -19,19 +19,6 @@ func NewChapterHandler(s service.ChapterService, logger *logrus.Logger) *Chapter
 	return &ChapterHandler{service: s, logger: logger}
 }
 
-// RegisterRoutes registers chapter endpoints
-func (h *ChapterHandler) RegisterRoutes(r *gin.RouterGroup) {
-	ch := r.Group("/chapters")
-	{
-		ch.POST("", h.CreateChapter)
-		ch.GET("/:id", h.GetChapterByID)
-		ch.PUT("/:id", h.UpdateChapter)
-		ch.DELETE("/:id", h.DeleteChapter)
-		ch.GET("/:id/lessons", h.GetChapterWithLessons)
-	}
-	r.GET("/courses/:courseId/chapters", h.GetChaptersByCourseID)
-}
-
 func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 	var req dto.ChapterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -49,7 +36,7 @@ func (h *ChapterHandler) CreateChapter(c *gin.Context) {
 }
 
 func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("chapter_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid chapter ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
@@ -65,7 +52,7 @@ func (h *ChapterHandler) GetChapterByID(c *gin.Context) {
 }
 
 func (h *ChapterHandler) GetChaptersByCourseID(c *gin.Context) {
-	courseID, err := strconv.ParseUint(c.Param("courseId"), 10, 32)
+	courseID, err := strconv.ParseUint(c.Param("course_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid course ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course ID format"})
@@ -81,7 +68,7 @@ func (h *ChapterHandler) GetChaptersByCourseID(c *gin.Context) {
 }
 
 func (h *ChapterHandler) GetChapterWithLessons(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("chapter_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid chapter ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
@@ -97,7 +84,7 @@ func (h *ChapterHandler) GetChapterWithLessons(c *gin.Context) {
 }
 
 func (h *ChapterHandler) UpdateChapter(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("chapter_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid chapter ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})
@@ -119,7 +106,7 @@ func (h *ChapterHandler) UpdateChapter(c *gin.Context) {
 }
 
 func (h *ChapterHandler) DeleteChapter(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseUint(c.Param("chapter_id"), 10, 32)
 	if err != nil {
 		h.logger.WithError(err).Error("Invalid chapter ID format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chapter ID format"})

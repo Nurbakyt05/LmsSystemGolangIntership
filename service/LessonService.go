@@ -28,13 +28,9 @@ type lessonService struct {
 }
 
 // NewLessonService creates a new instance of LessonService
-func NewLessonService(
-	repo repository.LessonRepository,
-	chapterRepo repository.ChapterRepository,
-	logger *logrus.Logger,
-) LessonService {
+func NewLessonService(lessonRepo repository.LessonRepository, chapterRepo repository.ChapterRepository, logger *logrus.Logger) LessonService {
 	return &lessonService{
-		repo:        repo,
+		repo:        lessonRepo,
 		chapterRepo: chapterRepo,
 		logger:      logger,
 	}

@@ -20,7 +20,6 @@ type ChapterService interface {
 	GetChapterWithLessons(ctx context.Context, id uint) (*dto.ChapterDetailResponse, error)
 }
 
-// chapterService implements ChapterService interface
 type chapterService struct {
 	repo       repository.ChapterRepository
 	courseRepo repository.CourseRepository
@@ -28,13 +27,9 @@ type chapterService struct {
 }
 
 // NewChapterService creates a new instance of ChapterService
-func NewChapterService(
-	repo repository.ChapterRepository,
-	courseRepo repository.CourseRepository,
-	logger *logrus.Logger,
-) ChapterService {
+func NewChapterService(chapterRepo repository.ChapterRepository, courseRepo repository.CourseRepository, logger *logrus.Logger) ChapterService {
 	return &chapterService{
-		repo:       repo,
+		repo:       chapterRepo,
 		courseRepo: courseRepo,
 		logger:     logger,
 	}
@@ -83,7 +78,6 @@ func (s *chapterService) UpdateChapter(ctx context.Context, id uint, chapterReq 
 		return nil, err
 	}
 
-	// If course ID is changing, verify new course exists
 	if existingChapter.CourseID != chapterReq.CourseID {
 		_, err := s.courseRepo.FindByID(ctx, chapterReq.CourseID)
 		if err != nil {
